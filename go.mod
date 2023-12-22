@@ -1,4 +1,4 @@
-module github.com/maczam/ymlog
+module github.com/mok42/ymlog
 
 go 1.18
 
