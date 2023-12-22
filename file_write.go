@@ -192,23 +192,21 @@ func (w *FileLoggerWriter) fileRotate(init bool) error {
 				w.rotateDuration = time.Second * 60
 				w.maxRotateAge = time.Now().Add(w.rotateDuration)
 				currentTime := time.Now()
-				truncatedTime := currentTime.Truncate(time.Second)
+				truncatedTime := currentTime.Truncate(time.Minute)
 				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
 			case RotateHour:
 				w.rotateDuration = time.Hour
 				currentTime := time.Now()
-				truncatedTime := currentTime.Truncate(time.Minute)
+				truncatedTime := currentTime.Truncate(time.Hour)
 				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
 			case RotateDay:
 				currentTime := time.Now()
-				truncatedTime := currentTime.Truncate(time.Hour)
-				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
+				truncatedTime := currentTime.Truncate(time.Day)
 				w.rotateDuration = time.Hour * 24
+				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
 			}
 
 			w.rotateTime = true
-
-			w.maxRotateAge = now.Add(w.rotateDuration)
 		}
 		fmt.Println(fmt.Sprintf("%s RotateLog>name>%s,Hour>%d", now.Format(time.RFC3339), w.realFileName, now.Hour()))
 		fd, err := os.OpenFile(w.realFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0664)
