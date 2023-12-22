@@ -200,9 +200,9 @@ func (w *FileLoggerWriter) fileRotate(init bool) error {
 				truncatedTime := currentTime.Truncate(time.Hour)
 				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
 			case RotateDay:
-				currentTime := time.Now()
-				truncatedTime := currentTime.Truncate(time.Day)
 				w.rotateDuration = time.Hour * 24
+				currentTime := time.Now()
+				truncatedTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, currentTime.Location())
 				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
 			}
 
