@@ -166,7 +166,6 @@ func (w *FileLoggerWriter) checkRotate(now time.Time) bool {
 func (w *FileLoggerWriter) close() {
 	close(w.msgChan)
 	w.file.Sync()
-
 }
 
 /*
@@ -190,25 +189,21 @@ func (w *FileLoggerWriter) fileRotate(init bool) error {
 			switch w.RotateType {
 			case RotateMinute:
 				w.rotateDuration = time.Second * 60
-				w.maxRotateAge = time.Now().Add(w.rotateDuration)
-				currentTime := time.Now()
-				truncatedTime := currentTime.Truncate(time.Minute)
+				truncatedTime := now.Truncate(time.Minute)
 				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
 			case RotateHour:
 				w.rotateDuration = time.Hour
-				currentTime := time.Now()
-				truncatedTime := currentTime.Truncate(time.Hour)
+				truncatedTime := now.Truncate(time.Hour)
 				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
 			case RotateDay:
 				w.rotateDuration = time.Hour * 24
-				currentTime := time.Now()
-				truncatedTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, currentTime.Location())
+				truncatedTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 				w.maxRotateAge = truncatedTime.Add(w.rotateDuration)
 			}
 
 			w.rotateTime = true
 		}
-		fmt.Println(fmt.Sprintf("%s RotateLog>name>%s,Hour>%d", now.Format(time.RFC3339), w.realFileName, now.Hour()))
+		fmt.Println(fmt.Sprintf("%s RotateLog>init>name>%s,Hour>%d", now.Format(time.RFC3339), w.realFileName, now.Hour()))
 		fd, err := os.OpenFile(w.realFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0664)
 		if err == nil {
 			w.file = fd
@@ -220,12 +215,7 @@ func (w *FileLoggerWriter) fileRotate(init bool) error {
 
 	if w.RotateType > 0 && w.checkRotate(now) {
 
-		fmt.Println(fmt.Sprintf("%s RotateLog>name>%s,Hour>%d", now.Format(time.RFC3339), w.realFileName, now.Hour()))
-
-		if w.maxsizeCurSize > 0 {
-			w.file.Sync()
-			w.file.Close()
-		}
+		fmt.Println(fmt.Sprintf("%s RotateLog>rotated>name>%s,Hour>%d", now.Format(time.RFC3339), w.realFileName, now.Hour()))
 
 		w.realFileName = getActualPathReplacePattern(w.FileName)
 		// Open the log file
@@ -244,15 +234,30 @@ func (w *FileLoggerWriter) fileRotate(init bool) error {
 			}
 		}
 
-		fd, err := os.OpenFile(w.realFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0664)
+		var oldFd = w.file
+
+		// 写入新文件
+		newFd, err := os.OpenFile(w.realFileName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0664)
 		if err != nil {
 			//fmt.Println(err)
 			return err
 		}
-		w.file = fd
-
+		w.file = newFd
 		w.maxRotateAge = now.Add(w.rotateDuration)
 		w.maxsizeCurSize = 0
+
+		// 关闭老文件
+		if w.maxsizeCurSize > 0 {
+			err := oldFd.Sync()
+			if err != nil {
+				fmt.Println(err)
+			}
+			err = oldFd.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+
 	} else {
 		if w.maxsizeCurSize > 0 {
 			w.file.Sync()
